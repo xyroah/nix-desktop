@@ -1,0 +1,69 @@
+@import "colors.css";
+
+window#waybar {
+    background-color: @background-dark; 
+    color: @text-color;
+    margin: 5px 15px;
+    border-radius: 5px; /* Reference looks flush with the top */
+    font-family: "JetBrains Mono Nerd Font", "Ubuntu";
+    min-height: 0;
+    padding: 2px 0;    
+    font-size: 13px;
+}
+
+#workspaces {
+    background-color: @background-light;
+    border-radius: 6px;
+    margin: 2px 5px;
+    padding: 0px;
+}
+
+#workspaces button {
+    color: @text-dim;
+    background-color: transparent;
+    border-radius: 6px;
+    margin: 0px 2px;
+    padding: 0px 10px;
+    transition: all 0.2s ease;
+}
+
+#custom-notification {
+    color: @text-color; /* Or @accent-color if you want it green */
+    padding: 0 4px;
+    margin: 0;
+    min-height: 0;
+}
+
+/* The Dark Highlight for the active workspace */
+#workspaces button.active {
+    background-color: @background-darker; 
+    color: @accent-color; /* The sage green text */
+    box-shadow: inset 0 0 0 1px @background-lighter; /* Subtle border to make it pop */
+}
+
+#workspaces button.urgent {
+    background-color: @critical;
+    color: @background-darker;
+}
+
+#workspaces button:hover {
+    background-color: @background-lighter;
+    color: @text-color;
+}
+
+/* Modules using the Earthy Variables */
+#clock { color: @accent-color; }
+#pulseaudio { color: @warning; }
+#network { color: @success; }
+#bluetooth { color: @accent-dim; }
+#cpu { color: @text-dim; }
+#memory { color: @text-dim; }
+#tray { margin-right: 10px; }
+#custom-mpris { color: @text-color; font-weight: bold; }
+#custom-separator { color: @background-lighter; padding: 0 5px; }
+
+#clock, #pulseaudio, #network, #bluetooth, #cpu, #memory, #tray {
+    padding: 0 10px;
+}
+
+

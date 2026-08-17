@@ -1,0 +1,109 @@
+{
+  "exclusive": true,
+  "reload_style_on_change": true,
+  "position": "top",
+  "spacing": 0,
+  "layer": "top",
+  "modules-left": [
+    "clock",
+    "custom/separator",
+    "custom/notification",
+    "tray",
+    "custom/separator",
+    "ext/workspaces" 
+  ],
+  "modules-center": [
+    "custom/mpris"
+  ],
+  "modules-right": [
+    "group/right"
+  ],
+  "group/right": {
+    "orientation": "inherit",
+    "modules": [
+      "battery",
+      "bluetooth",
+      "network",
+      "pulseaudio",
+      "memory",
+      "cpu"
+    ]
+  },
+  "ext/workspaces": {
+    "format": "{name}", 
+    "all-outputs": false,
+    "on-click": "activate"
+  },
+  "custom/notification": {
+    "tooltip": false,
+    "format": "{}",
+    "return-type": "json",
+    "exec-if": "which swaync-client",
+    "exec": "swaync-client -swb",
+    "on-click": "swaync-client -t -sw",
+    "on-click-right": "swaync-client -d -sw",
+    "escape": true
+  },
+  "custom/separator": {
+    "format": "|",
+    "tooltip": false
+  },
+  "cpu": {
+    "interval": 2,
+    "format": " {usage}%",
+    "on-click": "ghostty -e btop"
+  },
+  "memory": {
+    "interval": 2,
+    "format": " {used:0.1f}G",
+    "on-click": "ghostty -e btop"
+  },
+  "clock": {
+    "format": "{:%H:%M - %a, %d}",
+    "format-alt": "{:%d %B %Y}",
+    "tooltip-format": "<span>{calendar}</span>"
+  },
+  "network": {
+    "format": "",
+    "format-wifi": " {signalStrength}%",
+    "format-ethernet": "󰈀",
+    "format-disconnected": "󰤮",
+    "on-click": "ghostty -e nmtui"
+  },
+  "bluetooth": {
+    "format": "",
+    "on-click": "blueman-manager"
+  },
+  "pulseaudio": {
+    "format": "{icon} {volume}%",
+    "on-click": "pavucontrol",
+    "format-icons": {
+      "default": ["", "", ""]
+    }
+  },
+  "tray": {
+    "icon-size": 12,
+    "spacing": 10
+  },
+  "custom/mpris": {
+  	"whitelist": ["spotify"],
+    "exec": "playerctl metadata --format '{\"text\": \"{{artist}} - {{title}}\", \"alt\": \"{{status}}\", \"class\": \"{{status}}\"}' --follow 2>/dev/null | sed -u 's/&/\\&amp;/g'",
+    "format": "  {}",
+    "return-type": "json",
+    "on-click": "playerctl play-pause",
+    "on-scroll-up": "playerctl next",
+    "on-scroll-down": "playerctl previous",
+    "max-length": 40
+  },
+  "battery": {
+    "states": {
+      "warning": 30,
+      "critical": 15
+    },
+    "format": "{icon} {capacity}%",
+    "format-charging": " {capacity}%",
+    "format-plugged": " {capacity}%",
+    "format-alt": "{icon} {time}",
+    "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
+  }
+}
