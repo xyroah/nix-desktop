@@ -1,211 +1,254 @@
-{ config, pkgs, ... }:
+{ config, pkgs, inputs, ... }:
 
 {
   home.username = "xv";
   home.homeDirectory = "/home/xv";
   home.stateVersion = "26.05";
 
-  # ==============================================================================
-  # 1. PACKAGES (Waywall binary installed here)
-  # ==============================================================================
   home.packages = with pkgs; [
     waywall
+    wayfreeze
+    mpv
+    swayimg
+    google-chrome
+    piper
+    winboat
+    freerdp
+    librepods
+    losslesscut
+    waybar
+    btop
+    nixd
+    obs-cmd
+    psmisc
+    chatterino7
+    pavucontrol
+    unzip
+    neovim
+    gcc
+    ripgrep
+    fd
+    cava
+    (pkgs.callPackage ./ninjabrain-bot.nix { })
+    inputs.ninjabrain-bot-xwayland.packages.${pkgs.stdenv.hostPlatform.system}.default
+    zsh-syntax-highlighting
+    zsh-autosuggestions
   ];
 
-  # ==============================================================================
-    # JAY COMPOSITOR
-    # ==============================================================================
-    wayland.windowManager.jay.enable = true;
-    xdg.configFile."jay/config.toml".source = ./jay/config.toml;
+  home.pointerCursor = {
+    enable = true;
+    name = "catppuccin-mocha-dark-cursors";
+    package = pkgs.catppuccin-cursors.mochaDark;
+    size = 24;
+    gtk.enable = true;
+    x11.enable = true;
+  };
 
-  # ==============================================================================
-  # 2. FILE SYMLINKS (Waywall config folder linked here)
-  # ==============================================================================
+  # gtk
+  gtk = {
+    enable = true;
+    theme = {
+      name = "catppuccin-mocha-mauve-standard"; 
+      package = pkgs.catppuccin-gtk.override {
+        accents = [ "mauve" ];
+        size = "standard";
+        variant = "mocha";
+      };
+    };
+    iconTheme = {
+      name = "Papirus-Dark";
+      package = pkgs.papirus-icon-theme;
+    };
+  };
+  dconf.enable = true;      
+          
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications = {
+      "text/html" = "firefox.desktop";
+      "x-scheme-handler/http" = "firefox.desktop";
+      "x-scheme-handler/https" = "firefox.desktop";
+      "image/jpeg" = "swayimg.desktop";
+      "image/png" = "swayimg.desktop";
+      "image/gif" = "swayimg.desktop";
+      "image/webp" = "swayimg.desktop";
+      "image/svg+xml" = "swayimg.desktop";
+      "video/mp4" = "mpv.desktop";
+      "video/x-matroska" = "mpv.desktop"; 
+      "video/webm" = "mpv.desktop";
+      "video/quicktime" = "mpv.desktop";
+    };
+  };
+    
   xdg.configFile."waywall" = {
-	      source = ./waywall;
-	      recursive = true;
-	    };
+    source = ./waywall;
+    recursive = true;
+  };
   xdg.configFile."waybar".source = ./waybar;  
-  xdg.configFile."micro/settings.json".source = ./micro/bindings.json;
+  xdg.configFile."micro/colorschemes".source = ./micro/colorschemes;
   xdg.configFile."swaylock/config".source = ./swaylock/config;
   home.file.".zshrc".source = ./zshrc;
 
-  # ==============================================================================
-  # 3. NIXCRAFT CONFIGURATION
-  # ==============================================================================
-  nixcraft.client.instances."technical-setup" = {
-    version = "1.20.4";
+  xdg.configFile."vesktop-flags.conf".text = ''
+    --enable-features=UseOzonePlatform,WebRTCPipeWireCapturer
+    --ozone-platform=wayland
+  '';
+
+  # micro
+  programs.micro = {
+    enable = true;
+    settings = {
+      colorscheme = "catppuccin-mocha-transparent";
+      tabstospaces = true;
+      tabsize = 2;
+      mkparents = true;
+      softwrap = true;
+      "lsp.server" = "nix=nixd";
+      "lsp.formatOnSave" = true;
+      "lsp.tabcompletion" = true;
+    };
   };
 
-  # ==============================================================================
-  # 4. MANGO
-  # ==============================================================================
-  wayland.windowManager.mango = {
+  # jay
+  wayland.windowManager.jay = {
     enable = true;
-    systemd.enable = true;
-
-    # AUTOSTART (exec-once)
-    autostart_sh = ''
-      swaync &
-      awww-daemon &
-      swaybg -i /home/xv/Downloads/image.png &
-    '';
-
-    # EXTRA CONFIG (for options like reload notifications)
-    extraConfig = ''
-      exec = notify-send "MangoWM" "Configuration reloaded successfully!" -i preferences-system
-    '';
-
     settings = {
-      # ENVIRONMENT VARIABLES
-      env = [
-        "XDG_CURRENT_DESKTOP,mango"
-        "XDG_SESSION_TYPE,wayland"
-        "XDG_SESSION_DESKTOP,mango"
-        "SHELL,/usr/bin/zsh"
-        "QT_QPA_PLATFORM,wayland;xcb"
-        "GDK_BACKEND,wayland,x11"
-        "MOZ_ENABLE_WAYLAND,1"
+      gfx-api = "Vulkan";
+      repeat-rate = { rate = 50; delay = 200; };
+      use-hardware-cursor = false;
+      focus-follows-mouse = false;
+      unstable-mouse-follows-focus = "output"; 
+      middle-click-paste = false;
+      workspace-display-order = "sorted";
+      fallback-output-mode = "focus";
+      explicit-sync = true;
+      show-titles = false;
+      show-bar = false;
+      direct-scanout = true;
+      render-device = { name = "nvidia"; };
+      window-management-key = "Super_L";
+
+      on-graphics-initialized = [
+        { type = "exec"; exec = { prog = "dbus-update-activation-environment"; args = [ "--systemd" "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP" "XDG_SESSION_TYPE" ]; }; }
+        { type = "exec"; exec = { prog = "systemctl"; args = [ "--user" "restart" "xdg-desktop-portal" ]; }; }   
+        { type = "exec"; exec = { prog = "waybar"; privileged = true; }; }
+        { type = "exec"; exec = { prog = "swaync"; privileged = true; }; }
+        { type = "exec"; exec = { prog = "awww-daemon"; privileged = true; }; }
+        { type = "exec"; exec = { prog = "zsh"; args = [ "-c" "sleep 1 && awww img ${./assets/image.png}" ]; }; }
+        { type = "show-workspace"; name = "1"; output = { name = "Main"; }; move-to-output = true; }
+        { type = "show-workspace"; name = "2"; output = { name = "Secondary"; }; move-to-output = true; }
+        { type = "exec"; exec = "systemctl --user start polkit-gnome-authentication-agent-1.service"; }
       ];
 
-      # MONITORS
-      monitorrule = [
-        "name:eDP-1, width:1920, height:1080, refresh:144.000, x:0, y:0, scale:1"
+      theme = {
+        border-width = 2;
+        container-borders = "full";
+        border-color = "#FFFFFF00";
+        bar-separator-width = 1;
+        separator-color = "#350030";
+        bg-color = "#000000";
+        focused-title-bg-color = "#350030";
+        focused-title-text-color = "#EEEEEE";
+        unfocused-title-bg-color = "#000000";
+        unfocused-title-text-color = "#999999";
+        focused-inactive-title-bg-color = "#250015";
+        focused-inactive-title-text-color = "#999999";
+        focused-border-color = "#1A1B26";
+        workspace-display-order = "sorted";
+      };
+
+      drm-devices = [
+        { name = "nvidia"; match = { pci-vendor = 4318; pci-model = 11525; }; }
+        { name = "intel"; match = { pci-vendor = 32902; pci-model = 42880; }; }
       ];
 
-      # INPUT & BEHAVIOR
-      mouse_accel_speed = "-0.96";
-      trackpad_accel_speed = "0.33";
-      trackpad_accel_profile = 1;
-      mouse_accel_profile = 1;
-      trackpad_natural_scrolling = 1;
-      tap_to_click = 1;
-      sloppyfocus = 0;
-      warpcursor = 1;
-      focus_cross_monitor = 1;
-      drag_tile_to_tile = 1;
-
-      # DWINDLE LAYOUT
-      circle_layout = "dwindle,fair";
-      dwindle_split_ratio = "0.5";
-      dwindle_smart_split = 0;
-      dwindle_hsplit = 1;
-      dwindle_vsplit = 1;
-      dwindle_preserve_split = 0;
-      dwindle_smart_resize = 0;
-      dwindle_drop_simple_split = 1;
-
-      # APPEARANCE
-      gappih = 2;
-      gappiv = 2;
-      gappoh = 3;
-      gappov = 3;
-      blur = 1;
-      blur_optimized = 1;
-      smartgaps = 1;
-      focuscolor = "1A1B26";
-      tag_animation_direction = 0;
-
-      # WINDOW & TAG RULES
-      windowrule = [
-        "isfloating:1, appid:^(org\\.wezfurlong\\.wezterm)$"
-        "isfloating:1, isglobal:1, appid:firefox, title:^(Picture-in-Picture)$"
-        "isfloating:1, appid:^(me\\.kavishdevar\\.librepods)$"
+      inputs = [
+        { match = { is-pointer = true; }; accel-profile = "flat"; accel-speed = -0.96; natural-scrolling = false; }
       ];
 
-      tagrule = [
-        "id:1,layout_name:dwindle"
-        "id:2,layout_name:dwindle"
-        "id:3,layout_name:dwindle"
-        "id:4,layout_name:dwindle"
-        "id:5,layout_name:dwindle"
-        "id:6,layout_name:dwindle"
-        "id:7,layout_name:dwindle"
-        "id:8,layout_name:dwindle"
-        "id:9,layout_name:dwindle"
+      outputs = [
+        { name = "Main"; match = { connector = "DP-3"; }; x = 1920; y = 0; mode = { width = 1920; height = 1080; refresh-rate = 179.998; }; tearing = { mode = "always"; }; }
+        { name = "Secondary"; match = { connector = "DP-4"; }; x = 0; y = 0; mode = { width = 1920; height = 1080; refresh-rate = 179.998; }; tearing = { mode = "always"; }; }
       ];
 
-      # KEYBINDINGS
-      bind = [
-        # Applications
-        "SUPER, Return, spawn, ghostty"
-        "SUPER, p, spawn, fuzzel"
-        "SUPER+ALT, l, spawn, swaylock"
-        "SUPER, x, spawn, swaync-client -t -sw"
+      shortcuts = {
+        logo-Return  = { type = "exec"; exec = "ghostty"; };
+        logo-p       = { type = "exec"; exec = "fuzzel"; };
+        logo-shift-s = { type = "exec"; exec = { prog = "zsh"; args = [ "-c" "wayfreeze --after-freeze-cmd 'grim -g \"$(slurp)\" - | wl-copy; pkill wayfreeze'" ]; privileged = true; }; };
+        logo-shift-m = { type = "exec"; exec = { prog = "zsh"; args = [ "-c" "wayfreeze --after-freeze-cmd 'grim -g \"$(slurp)\" /tmp/swappy.png; pkill wayfreeze; swappy -f /tmp/swappy.png'" ]; privileged = true; }; };
+        logo-x       = { type = "exec"; exec = { prog = "zsh"; args = [ "-c" "swaync-client -t -sw" ]; }; };
+        
+        logo-q             = "close";
+        logo-f             = "toggle-fullscreen";
+        logo-shift-q       = "quit";
+        logo-shift-r       = "reload-config-toml";
+        logo-shift-space   = "toggle-floating";
+        alt-shift-p        = "toggle-float-pinned";
 
-        # System & Window Management
-        "SUPER, q, killclient"
-        "SUPER+SHIFT, q, quit"
-        "SUPER+SHIFT, f, togglefullscreen"
-        "SUPER, f, togglemaximizescreen"
-        "SUPER+SHIFT, SPACE, togglefloating"
-        "SUPER, r, reload_config"
-        "SUPER, tab, toggleoverview"
-        "SUPER, m, togglegaps"
+        XF86AudioRaiseVolume = { type = "exec"; exec = { prog = "wpctl"; args = [ "set-sink-volume" "0" "+5%" ]; }; };
+        XF86AudioLowerVolume = { type = "exec"; exec = { prog = "wpctl"; args = [ "set-sink-volume" "0" "-5%" ]; }; };
+        XF86AudioMute        = { type = "exec"; exec = { prog = "wpctl"; args = [ "set-sink-mute" "0" "toggle" ]; }; };
 
-        # Layouts
-        "SUPER, backslash, switch_layout"
-        "SUPER+SHIFT, backslash, setlayout, dwindle"
+        logo-shift-j = { type = "exec"; exec = { prog = "zsh"; args = [ "-c" "obs-cmd recording toggle" ]; }; };
+        logo-shift-k = { type = "exec"; exec = { prog = "zsh"; args = [ "-c" "obs-cmd replay save" ]; }; };
 
-        # Screenshots
-        "SUPER+SHIFT, s, spawn, sh -c 'grim -g \"$(slurp)\" - | wl-copy'"
-        "SUPER+SHIFT, m, spawn, sh -c 'grim -g \"$(slurp)\" - | swappy'"
+        # workspace  
+        logo-1 = [ { type = "show-workspace"; name = "1"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-2 = [ { type = "show-workspace"; name = "2"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-3 = [ { type = "show-workspace"; name = "3"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-4 = [ { type = "show-workspace"; name = "4"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-5 = [ { type = "show-workspace"; name = "5"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-6 = [ { type = "show-workspace"; name = "6"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-7 = [ { type = "show-workspace"; name = "7"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-8 = [ { type = "show-workspace"; name = "8"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-9 = [ { type = "show-workspace"; name = "9"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-0 = [ { type = "show-workspace"; name = "10"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
 
-        # Focus Movement
-        "SUPER, h, focusdir, left"
-        "SUPER, j, focusdir, down"
-        "SUPER, k, focusdir, up"
-        "SUPER, l, focusdir, right"
-        "SUPER, Left, focusdir, left"
-        "SUPER, Down, focusdir, down"
-        "SUPER, Up, focusdir, up"
-        "SUPER, Right, focusdir, right"
+        # move window & follow
+        logo-shift-1 = [ { type = "move-to-workspace"; name = "1"; } { type = "show-workspace"; name = "1"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-shift-2 = [ { type = "move-to-workspace"; name = "2"; } { type = "show-workspace"; name = "2"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-shift-3 = [ { type = "move-to-workspace"; name = "3"; } { type = "show-workspace"; name = "3"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-shift-4 = [ { type = "move-to-workspace"; name = "4"; } { type = "show-workspace"; name = "4"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-shift-5 = [ { type = "move-to-workspace"; name = "5"; } { type = "show-workspace"; name = "5"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-shift-6 = [ { type = "move-to-workspace"; name = "6"; } { type = "show-workspace"; name = "6"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-shift-7 = [ { type = "move-to-workspace"; name = "7"; } { type = "show-workspace"; name = "7"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-shift-8 = [ { type = "move-to-workspace"; name = "8"; } { type = "show-workspace"; name = "8"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-shift-9 = [ { type = "move-to-workspace"; name = "9"; } { type = "show-workspace"; name = "9"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-shift-0 = [ { type = "move-to-workspace"; name = "10"; } { type = "show-workspace"; name = "10"; } { type = "warp-mouse-to-focus"; target = "output"; } ];
 
-        # Media & Volume
-		"NONE, XF86AudioRaiseVolume, spawn, wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1+ -l 1.0"
-        "NONE, XF86AudioLowerVolume, spawn, wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1-"
-        "NONE, XF86AudioMute, spawn, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
-        "NONE, XF86AudioMicMute, spawn, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"        "NONE, XF86AudioPlay, spawn, playerctl play-pause"
-        "NONE, XF86AudioStop, spawn, playerctl stop"
-        "NONE, XF86AudioPrev, spawn, playerctl previous"
-        "NONE, XF86AudioNext, spawn, playerctl next"
+        logo-h = [ "focus-tiles" "focus-left" { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-j = [ "focus-tiles" "focus-down" { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-k = [ "focus-tiles" "focus-up" { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-l = [ "focus-tiles" "focus-right" { type = "warp-mouse-to-focus"; target = "output"; } ];
 
-        # Backlight
-        "NONE, f4, spawn, brightnessctl --class=backlight set +5%"
-        "NONE, f3, spawn, brightnessctl --class=backlight set 5%-"
+        logo-Left  = [ "focus-tiles" "focus-left" { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-Down  = [ "focus-tiles" "focus-down" { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-Up    = [ "focus-tiles" "focus-up" { type = "warp-mouse-to-focus"; target = "output"; } ];
+        logo-Right = [ "focus-tiles" "focus-right" { type = "warp-mouse-to-focus"; target = "output"; } ];
 
-        # Workspaces - View
-        "SUPER, 1, view, 1"
-        "SUPER, 2, view, 2"
-        "SUPER, 3, view, 3"
-        "SUPER, 4, view, 4"
-        "SUPER, 5, view, 5"
-        "SUPER, 6, view, 6"
-        "SUPER, 7, view, 7"
-        "SUPER, 8, view, 8"
-        "SUPER, 9, view, 9"
+        ctrl-alt-F1 = { type = "switch-to-vt"; num = 1; };
+        ctrl-alt-F2 = { type = "switch-to-vt"; num = 2; };
+        ctrl-alt-F3 = { type = "switch-to-vt"; num = 3; };
+        ctrl-alt-F4 = { type = "switch-to-vt"; num = 4; };
+        ctrl-alt-F5 = { type = "switch-to-vt"; num = 5; };
+        ctrl-alt-F6 = { type = "switch-to-vt"; num = 6; };
+        ctrl-alt-F7 = { type = "switch-to-vt"; num = 7; };
+      };
 
-        # Workspaces - Tag Window
-        "SUPER+SHIFT, 1, tag, 1"
-        "SUPER+SHIFT, 2, tag, 2"
-        "SUPER+SHIFT, 3, tag, 3"
-        "SUPER+SHIFT, 4, tag, 4"
-        "SUPER+SHIFT, 5, tag, 5"
-        "SUPER+SHIFT, 6, tag, 6"
-        "SUPER+SHIFT, 7, tag, 7"
-        "SUPER+SHIFT, 8, tag, 8"
-        "SUPER+SHIFT, 9, tag, 9"
+      windows = [
+        { match = { any = [ { app-id = "discord"; } { app-id = "vesktop"; } { app-id = "spotify"; } { app-id = "com.obsproject.Studio"; } ]; }; action = [ { type = "move-to-output"; output = "Secondary"; } ]; }
+        { match = { any = [ { app-id = "zen"; title = "Picture-in-Picture"; } { app-id = "firefox"; title = "Picture-in-Picture"; } ]; }; initial-tile-state = "floating"; action = [ "pin-float" "enable-float-above-fullscreen" ]; }
       ];
 
-      # MOUSE & GESTURE BINDINGS
-      mousebind = [
-        "SUPER, btn_left, moveresize, curmove"
-        "SUPER, btn_right, moveresize, curresize"
-      ];
-
-      axisbind = [
-        "SUPER, UP, viewtoleft_have_client"
-        "SUPER, DOWN, viewtoright_have_client"
+      clients = [
+        { match = { comm = "waybar"; }; capabilities = [ "layer-shell" "workspace-manager" "foreign-toplevel-manager" ]; }
+        { match = { comm = "awww-daemon"; }; capabilities = [ "layer-shell" ]; }
+        { match = { comm = "swaync"; }; capabilities = [ "layer-shell" ]; }
+        { match = { exe-regex = "wl-(copy|paste)"; }; capabilities = [ "data-control" ]; }
+        { match = { comm = "swaylock"; }; capabilities = [ "session-lock" "layer-shell" ]; }
+        { match = { comm = "wayfreeze"; }; capabilities = [ "layer-shell" "screencopy" ]; }
+        { match = { comm = "grim"; }; capabilities = [ "screencopy" ]; }
+        { match = { comm = "slurp"; }; capabilities = [ "layer-shell" ]; }
       ];
     };
   };

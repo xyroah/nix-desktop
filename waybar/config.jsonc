@@ -21,7 +21,6 @@
   "group/right": {
     "orientation": "inherit",
     "modules": [
-      "battery",
       "bluetooth",
       "network",
       "pulseaudio",
@@ -34,16 +33,16 @@
     "all-outputs": false,
     "on-click": "activate"
   },
-  "custom/notification": {
-    "tooltip": false,
-    "format": "{}",
-    "return-type": "json",
-    "exec-if": "which swaync-client",
-    "exec": "swaync-client -swb",
-    "on-click": "swaync-client -t -sw",
-    "on-click-right": "swaync-client -d -sw",
-    "escape": true
-  },
+    "custom/notification": {
+        "tooltip": false,
+        "format": "{}",
+        "return-type": "json",
+        "exec-if": "which swaync-client",
+        "exec": "swaync-client -swb",
+        "on-click": "swaync-client -t -sw",
+        "on-click-right": "swaync-client -d -sw",
+        "escape": true
+      },
   "custom/separator": {
     "format": "|",
     "tooltip": false
@@ -85,25 +84,13 @@
     "icon-size": 12,
     "spacing": 10
   },
-  "custom/mpris": {
-  	"whitelist": ["spotify"],
-    "exec": "playerctl metadata --format '{\"text\": \"{{artist}} - {{title}}\", \"alt\": \"{{status}}\", \"class\": \"{{status}}\"}' --follow 2>/dev/null | sed -u 's/&/\\&amp;/g'",
+"custom/mpris": {
+    "exec": "playerctl --player=spotify metadata --format '{\"text\": \"{{artist}} - {{title}}\", \"alt\": \"{{status}}\", \"class\": \"{{status}}\"}' --follow 2>/dev/null | sed -u 's/&/\\&amp;/g'",
     "format": "  {}",
     "return-type": "json",
-    "on-click": "playerctl play-pause",
-    "on-scroll-up": "playerctl next",
-    "on-scroll-down": "playerctl previous",
+    "on-click": "playerctl --player=spotify play-pause",
+    "on-scroll-up": "playerctl --player=spotify next",
+    "on-scroll-down": "playerctl --player=spotify previous",
     "max-length": 40
-  },
-  "battery": {
-    "states": {
-      "warning": 30,
-      "critical": 15
-    },
-    "format": "{icon} {capacity}%",
-    "format-charging": " {capacity}%",
-    "format-plugged": " {capacity}%",
-    "format-alt": "{icon} {time}",
-    "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
   }
-}
+  }

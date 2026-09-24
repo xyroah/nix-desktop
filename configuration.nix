@@ -1,22 +1,18 @@
-# Edit this configuration file to define what should be installed on
-# your system. Help is available in the configuration.nix(5) man page
-# and in the NixOS manual (accessible by running ‘nixos-help’).
-
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, mcsrPkgs, ... }:
 
 {
   imports = [
     ./hardware-configuration.nix
   ];
 
-  # ==========================================
-  # Bootloader & Splash Screen
-  # ==========================================
+  # boot stuff 
   boot = {
-    # Kernel & Drivers
     kernelPackages = pkgs.linuxPackages_latest;
-
-    # Clean boot output for Plymouth
+    extraModulePackages = with config.boot.kernelPackages; [ v4l2loopback ];
+    kernelModules = [ "v4l2loopback" ];
+    extraModprobeConfig = ''
+      options v4l2loopback devices=1 video_nr=1 card_label="OBS Virtual Camera" exclusive_caps=1
+    '';
     consoleLogLevel = 0;
     initrd.verbose = false;
     kernelParams = [
@@ -29,41 +25,37 @@
       "udev.log_priority=3"
       "vt.global_cursor_default=0"
     ];
-
-	# Minimal NixOS logo splash
-        plymouth = {
-        enable = true;
-		theme = "bgrt";
-         };
-    # Systemd-boot & Generation Settings
+    plymouth = {
+      enable = true;
+      theme = "bgrt";
+    };
     loader = {
       efi.canTouchEfiVariables = true;
-      
-      systemd-boot = {
+      systemd-boot.enable = false;
+      grub = {
         enable = true;
-        
-        # Native display resolution (no pixelated text)
-        consoleMode = "max";
-        
-        # Keep generation list tidy (caps menu to 10 entries)
-        configurationLimit = 10;
-        
-        # Sort so newest generations stay on top
-        sortKey = "nixos";
+        efiSupport = true;
+        device = "nodev";
+        useOSProber = true;
+        extraEntries = ''
+          menuentry "NixOS (500GB)" {
+            search --no-floppy --fs-uuid --set=root C26C-1D24
+            chainloader /EFI/systemd/systemd-bootx64.efi
+          }
+        '';
       };
     };
-
   };
+  powerManagement.enable = true;
+  powerManagement.cpuFreqGovernor = "performance";
 
-  # ==========================================
-  # Network & System
-  # ==========================================
+  # --- Network & Locale ---
   networking.hostName = "nixos";
   networking.networkmanager.enable = true;
+  systemd.services.NetworkManager-wait-online.enable = false;
 
   time.timeZone = "America/Chicago";
   i18n.defaultLocale = "en_US.UTF-8";
-
   i18n.extraLocaleSettings = {
     LC_ADDRESS = "en_US.UTF-8";
     LC_IDENTIFICATION = "en_US.UTF-8";
@@ -76,37 +68,42 @@
     LC_TIME = "en_US.UTF-8";
   };
 
-  # ==========================================
-  # Desktop Environment & Display Manager
-  # ==========================================
-  services.xserver.enable = false;
-  services.displayManager.sddm.enable = false;
-  services.desktopManager.plasma6.enable = false;
+  #  Environment Variables 
+  environment.sessionVariables = {
+    NVD_BACKEND = "direct";
+    MOZ_ENABLE_WAYLAND = "1";
+    XDG_SESSION_TYPE = "wayland";
+    NIXOS_OZONE_WL = "1";
+    QT_QPA_PLATFORMTHEME = "gtk3";
+  };
 
-  # Sway Window Manager
-	programs.mango.enable = true;
+  environment.variables = {
+    EDITOR = "micro";
+    VISUAL = "micro";
+    TERMINAL = "ghostty";
+    LIBVA_DRIVER_NAME = "nvidia";
+  };
 
- 	 environment.sessionVariables = {
-    	WLR_NO_HARDWARE_CURSORS = "1";
-    	NVD_BACKEND = "direct";
-    	MOZ_ENABLE_WAYLAND = "1";
-    	XDG_SESSION_TYPE = "wayland";
-    	XDG_CURRENT_DESKTOP = "mango";
-  	};
-  programs.waybar.enable = true;
+  #desktop stuff 
+  programs.xwayland.enable = true;
   programs.zsh.enable = true;
+  programs.nh = {
+    enable = true;
+    clean.enable = true;
+    clean.extraArgs = "--keep-since 7d --keep 3";
+    flake = "/home/xv/.dotfiles";
+  };
 
-  # Auto-start Sway on tty1 login
-	programs.zsh.loginShellInit = ''
-	      if [ -z "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ]; then
-	        if [ "$(tty)" = "/dev/tty1" ]; then
-	          exec jay run-privileged
-	        elif [ "$(tty)" = "/dev/tty2" ]; then
-	          exec mango
-	        fi
-	      fi
-	    '';
-  # XDG Portals
+  services.greetd = {
+    enable = true;
+    settings = {
+      default_session = {
+        command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --cmd 'jay run'";
+        user = "greeter";
+      };
+    };
+  };
+
   xdg.portal = {
     enable = true;
     wlr.enable = true;
@@ -116,13 +113,27 @@
         chooser_cmd = "${pkgs.slurp}/bin/slurp -f %o -or";
       };
     };
-    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
-    config.sway.default = lib.mkForce [ "wlr" "gtk" ];
+    extraPortals = [
+      pkgs.xdg-desktop-portal-gtk
+      (pkgs.writeTextDir "share/xdg-desktop-portal/portals/jay.portal" ''
+        [portal]
+        DBusName=org.freedesktop.impl.portal.desktop.jay
+        Interfaces=org.freedesktop.impl.portal.ScreenCast;org.freedesktop.impl.portal.RemoteDesktop;
+      '')
+    ];
+    config.jay = {
+      default = [ "gtk" ];
+      "org.freedesktop.impl.portal.ScreenCast" = [ "jay" ];
+      "org.freedesktop.impl.portal.RemoteDesktop" = [ "jay" ];
+      "org.freedesktop.impl.portal.Inhibit" = [ "none" ];
+      "org.freedesktop.impl.portal.FileChooser" = [ "gtk" ];
+    };
   };
 
-  # ==========================================
-  # Nvidia Driver Configuration
-  # ==========================================
+  # hardware
+  services.xserver.videoDrivers = [ "nvidia" ];
+  services.xserver.xkb.layout = "us";
+
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
@@ -135,8 +146,6 @@
     ];
   };
 
-  services.xserver.videoDrivers = [ "nvidia" ];
-
   hardware.nvidia = {
     modesetting.enable = true;
     open = true;
@@ -144,16 +153,7 @@
     package = config.boot.kernelPackages.nvidiaPackages.latest;
   };
 
-  services.xserver.xkb = {
-    layout = "us";
-    variant = "";
-  };
-
-  # ==========================================
-  # Audio, Printing & Hardware
-  # ==========================================
-  services.printing.enable = true;
-
+  # --- audio & stuff ---
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {
@@ -163,17 +163,22 @@
     pulse.enable = true;
   };
 
+  services.printing.enable = true;
+  services.blueman.enable = true;
+  services.ratbagd.enable = true;
+
   hardware.bluetooth.enable = true;
   hardware.bluetooth.powerOnBoot = true;
-  services.blueman.enable = true;
+  hardware.logitech.wireless.enable = true;
 
-  # ==========================================
-  # User Configuration & Packages
-  # ==========================================
-  users.users."xv" = {
+  virtualisation.docker.enable = true;
+  programs.dconf.enable = true;
+
+  # user
+    users.users."xv" = {
     isNormalUser = true;
     description = "xv";
-    extraGroups = [ "networkmanager" "wheel" "video" ]; 
+    extraGroups = [ "networkmanager" "wheel" "video" "docker" ];
     shell = pkgs.zsh;
     packages = with pkgs; [
       fuzzel
@@ -182,26 +187,32 @@
       fastfetch
       wl-clipboard
       polkit_gnome
-      micro
-      vesktop 
+      vesktop
       mew
       jq
       spotify
       git
-      prismlauncher
-      
+      (prismlauncher.override {
+        additionalLibs = [ 
+        pkgs.jemalloc
+        pkgs.libxkbcommon
+         ];
+        jdks = [
+          mcsrPkgs.graalvm-21
+          pkgs.temurin-bin-21
+          pkgs.temurin-bin-25
+        ];
+      })
       grim
       slurp
       swappy
       awww
-
       brightnessctl
-      pulseaudio 
+      pulseaudio
       playerctl
     ];
   };
 
-  # Polkit Agent for Sway
   systemd.user.services.polkit-gnome-authentication-agent-1 = {
     description = "polkit-gnome-authentication-agent-1";
     wantedBy = [ "graphical-session.target" ];
@@ -216,27 +227,41 @@
     };
   };
 
+  # applications
+  programs.java = {
+    enable = true;
+    package = pkgs.temurin-bin-21;
+  };
+
   programs.firefox.enable = true;
 
-  # ==========================================
-  # Applications & Environment
-  # ==========================================
+  programs.steam = {
+    enable = true;
+    remotePlay.openFirewall = true;
+    dedicatedServer.openFirewall = true;
+    localNetworkGameTransfers.openFirewall = true;
+  };
+  programs.gamemode.enable = true;
+
   programs.obs-studio = {
     enable = true;
-    package = ( pkgs.obs-studio.override { cudaSupport = true; } );
+    package = (pkgs.obs-studio.override { cudaSupport = true; });
     plugins = with pkgs.obs-studio-plugins; [
       wlrobs
+      obs-pipewire-audio-capture
     ];
   };
 
-  nixpkgs.config.allowUnfree = true;
-
-  environment.variables = {
-    EDITOR = "micro";
-    VISUAL = "micro";
-    TERMINAL = "ghostty";
-    LIBVA_DRIVER_NAME = "nvidia";
+  programs.thunar = {
+    enable = true;
+    plugins = with pkgs; [
+      thunar-archive-plugin
+      thunar-volman
+    ];
   };
+  programs.xfconf.enable = true;
+  services.gvfs.enable = true;
+  services.tumbler.enable = true;
 
   fonts.packages = with pkgs; [
     nerd-fonts.symbols-only
@@ -246,21 +271,12 @@
     font-awesome
   ];
 
-  programs.thunar = {
-    enable = true;
-    plugins = with pkgs; [
-      thunar-archive-plugin
-      thunar-volman
-    ];
-  };
+  # shit
+  nixpkgs.config.allowUnfree = true;
+  nixpkgs.config.permittedInsecurePackages = [
+    "electron-40.10.5"
+  ];
 
-  services.gvfs.enable = true; 
-  services.tumbler.enable = true; 
-
-  # ==========================================
-  # Nix System Configuration
-  # ==========================================
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-
-  system.stateVersion = "26.05"; 
+  system.stateVersion = "26.05";
 }

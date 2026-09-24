@@ -1,8 +1,6 @@
-# ==========================================
-# 1. Global & Core Configuration
-# ==========================================
+#Core Stuff
 gfx-api = "Vulkan"
-#repeat-rate = { rate = 50, delay = 200 }
+repeat-rate = { rate = 50, delay = 200 }
 use-hardware-cursor = true
 focus-follows-mouse = false
 middle-click-paste = false
@@ -18,26 +16,18 @@ window-management-key = "Super_L"
 
 # --- Startup Hooks ---
 on-graphics-initialized = [
-    { type = "exec", exec = "gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'" },
-    { type = "exec", exec = "gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'" },
-    { type = "exec", exec = "waybar", privileged = true },
-    { type = "exec", exec = "ghostty" },
-    { type = "exec", exec = "swaync" },
-    { type = "exec", exec = "awww-daemon", privileged = true },
+	{ type = "exec", exec = { prog = "dbus-update-activation-environment", args = ["--systemd", "WAYLAND_DISPLAY", "XDG_CURRENT_DESKTOP", "XDG_SESSION_TYPE"] } },
+    { type = "exec", exec = { prog = "systemctl", args = ["--user", "restart", "xdg-desktop-portal"] } },    
+    { type = "exec", exec = { prog = "waybar", privileged = true } },
+    { type = "exec", exec = { prog = "swaync", privileged = true } },
+    { type = "exec", exec = { prog = "awww-daemon", privileged = true } },
     { type = "exec", exec = { prog = "zsh", args = ["-c", "sleep 1 && awww img /home/xv/Downloads/train-sideview.png"] } },
     { type = "exec", exec = { prog = "swayidle", args = ["-w", "timeout", "900", "swaylock -f", "before-sleep", "swaylock -f"], privileged = true } },
-
-   # XF86AudioRaiseVolume = { type = "exec", exec = ["pactl", "set-sink-volume", "0", "+5%"] }
-   # XF86AudioLowerVolume = { type = "exec", exec = ["pactl", "set-sink-volume", "0", "-5%"]}
-   # XF86AudioMute = { type = "exec",exec = ["pactl", "set-sink-mute", "0", "toggle"] }
-
-# Bind workspaces to outputs on startup
     { type = "show-workspace", name = "1", output.name = "Main", move-to-output = true },
+    { type = "exec", exec = "systemctl --user start polkit-gnome-authentication-agent-1.service" },
 ]
 
-# ==========================================
-# 2. Theme
-# ==========================================
+# Themes
 [theme]
 border-width = 2
 container-borders = "full"
@@ -55,9 +45,7 @@ focused-border-color = "#1A1B26"
 workspace-display-order = "sorted"
 
 
-# ==========================================
-# 3. Hardware & Devices
-# ==========================================
+#Hardware and peripherals
 [[drm-devices]]
 name = "nvidia"
 match = { pci-vendor = 0x10de, pci-model = 0x2d05 }
@@ -69,21 +57,17 @@ match = { pci-vendor = 0x8086, pci-model = 0xa780 }
 [[inputs]]
 match.is-pointer = true
 accel-profile = "flat"
-accel-speed = -0.9600
+accel-speed = -0.96
 natural-scrolling = false
 
 [[inputs]]
-match.syspath = "/sys/devices/pci0000:00/0000:00:15.1/i2c_designware.1/i2c-4/i2c-ELAN0A02:01"
+match.syspath = "/sys/devices/pci0000:00/0000:00:15.1/i2c_designware.1/i2c-2/i2c-ELAN0A02:01"
 accel-profile = "flat"
 accel-speed = 0.36
 natural-scrolling = true
 tap-enabled = true
 
-
-
-# ==========================================
-# 4. Outputs (Monitors)
-# ==========================================
+#Outputs
 [[outputs]]
 name = "Main"
 match = { connector = "eDP-1" }
@@ -92,13 +76,11 @@ y = 0
 mode = { width = 1920, height = 1080, refresh-rate = 144.000 }
 tearing.mode = "always"
 
-# ==========================================
-# 5. Shortcuts
-# ==========================================
+#Hotkeys 
 [shortcuts]
 logo-Return   = { type = "exec", exec = "ghostty" }
 logo-p        = { type = "exec", exec = "fuzzel" }
-logo-shift-s  = { type = "exec", exec = { prog = "zsh", args = ["-lc", "wayfreeze --after-freeze-cmd 'grim -g \"$(slurp)\" - | wl-copy; killall wayfreeze'"], privileged = true } }
+logo-shift-s  = { type = "exec", exec = { prog = "zsh", args = ["-c", "wayfreeze --after-freeze-cmd 'grim -g \"$(slurp)\" - | wl-copy; killall wayfreeze'"], privileged = true } }
 logo-x =        { type = "exec", exec = { prog = "zsh", args = ["-c", "swaync-client -t -sw"] } }
 
 logo-q            = "close"
@@ -108,7 +90,6 @@ logo-shift-r      = "reload-config-toml"
 logo-shift-space  = "toggle-floating"
 XF86AudioLowerVolume = { type = "exec", exec = {shell = "amixer set Master 5%-"}}
 XF86AudioRaiseVolume = { type = "exec", exec = {shell = "amixer set Master 5%+"}}
-
 
 
 # Workspace Switching
@@ -137,14 +118,12 @@ logo-shift-9 = [ { type = "move-to-workspace", name = "9" }, { type = "show-work
 logo-shift-0 = [ { type = "move-to-workspace", name = "10" }, { type = "show-workspace", name = "10" }, "warp-mouse-to-focus" ]
 
 # Directional focus-vim
-
 logo-h = [ "focus-tiles", "focus-left", "warp-mouse-to-focus" ]
 logo-j = [ "focus-tiles", "focus-down", "warp-mouse-to-focus" ]
 logo-k = [ "focus-tiles", "focus-up", "warp-mouse-to-focus" ]
 logo-l = [ "focus-tiles", "focus-right", "warp-mouse-to-focus" ]
 
 # Directional focus-arrow
-
 logo-Left  = [ "focus-tiles", "focus-left", "warp-mouse-to-focus" ]
 logo-Down  = [ "focus-tiles", "focus-down", "warp-mouse-to-focus" ]
 logo-Up    = [ "focus-tiles", "focus-up", "warp-mouse-to-focus" ]
@@ -166,16 +145,7 @@ ctrl-alt-F12 = { type = "switch-to-vt", num = 12 }
 
 
 
-# ==========================================
-# 6. Rules & Capabilities
-# ==========================================
-# [[windows]]
-# match = { any = [
-#     { app-id = "discord" },
-#     { app-id = "spotify" },
-#     { app-id = "com.obsproject.Studio" },
-# ] }
-# action = [ { type = "move-to-output", output = "Secondary" } ]
+# Window Rules
 
 [[windows]]
 match = { any = [
@@ -183,22 +153,36 @@ match = { any = [
     { app-id = "firefox", title = "Picture-in-Picture" }
 ] }
 initial-tile-state = "floating"
-#action = [ "pin-float", "toggle-float-above-fullscreen" ]
 action = [ "pin-float", "enable-float-above-fullscreen" ]
 
-
 [[clients]]
-match = { exe-regex = "^/usr/bin/waybar$" }
+match.comm = "waybar"
 capabilities = [ "layer-shell", "workspace-manager", "foreign-toplevel-manager" ]
 
 [[clients]]
-match = { exe-regex = "^/usr/bin/awww-daemon$" }
+match.comm = "awww-daemon"
 capabilities = [ "layer-shell" ]
 
 [[clients]]
-match = { exe-regex = "^/usr/bin/wl-(copy|paste)$" }
+match.comm = "swaync"
+capabilities = [ "layer-shell" ]
+
+[[clients]]
+match = { exe-regex = "wl-(copy|paste)" }
 capabilities = [ "data-control" ]
 
 [[clients]]
 match.comm = "swaylock"
 capabilities = [ "session-lock", "layer-shell" ]
+
+[[clients]]
+match.comm = "wayfreeze"
+capabilities = [ "layer-shell", "screencopy" ]
+
+[[clients]]
+match.comm = "grim"
+capabilities = [ "screencopy" ]
+
+[[clients]]
+match.comm = "slurp"
+capabilities = [ "layer-shell" ]

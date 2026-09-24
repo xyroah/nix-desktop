@@ -1,5 +1,5 @@
 {
-  description = "Local NixOS Flake with MangoWM";
+  description = "blumb";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -9,40 +9,38 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    mango = {
-      url = "github:mangowm/mango";
+    ninjabrain-bot-xwayland = {
+      url = "github:Ktrompfl/ninjabrain-bot-xwayland";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    nixcraft = {
-          url = "github:loystonpais/nixcraft";
-          inputs.nixpkgs.follows = "nixpkgs";
-        };
-        
+    mcsr-nixos.url = "git+https://git.uku3lig.net/tom-ricci/mcsr-nixos.git";
+            
     jay = {
-          url = "github:mahkoh/jay";
-          inputs.nixpkgs.follows = "nixpkgs";
-        };
+      url = "github:Ktrompfl/jay/warp-mouse-to-outputs";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, mango, nixcraft, jay, ... }@inputs: {
+  outputs = { self, nixpkgs, home-manager, jay, mcsr-nixos, ... }@inputs: {
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
-      specialArgs = { inherit inputs; };
+      
+      specialArgs = { 
+        inherit inputs; 
+        mcsrPkgs = mcsr-nixos.packages."x86_64-linux";
+      };
+      
       modules = [
         ./configuration.nix
-        mango.nixosModules.mango
-
         home-manager.nixosModules.home-manager
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
           home-manager.extraSpecialArgs = { inherit inputs; };
-		  home-manager.sharedModules = [ 
-		              mango.hmModules.mango 
-		              nixcraft.homeModules.default 
-		              jay.homeManagerModules.default
-		            ];
+          home-manager.sharedModules = [ 
+            jay.homeManagerModules.default
+          ];
           home-manager.users.xv = import ./home.nix;
         }
       ];
