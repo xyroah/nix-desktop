@@ -1,0 +1,12 @@
+@define-color background-darker #1a1b16;
+@define-color background-dark #24251e;
+@define-color background-light #32342a;
+@define-color background-lighter #45473a;
+@define-color text-color #dcdccc;
+@define-color text-dim #a3a393;
+@define-color accent-color #8fb28f;
+@define-color accent-dim #709080;
+@define-color critical #cc9393;
+@define-color warning #dfaf8f;
+@define-color success #afd7af;
+
